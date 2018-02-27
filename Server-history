@@ -1,0 +1,91 @@
+2  slappasswd -s Redhat2018** -n > /etc/openldap/passwd
+3  cat > start
+4  cat start
+5  vim start
+6  yum install vim -y
+7  vim start
+8   openssl req -new -x509 -nodes -out /etc/openldap/certs/cert.pem \ -keyout /etc/openldap/certs/priv.pem -days 365
+9   openssl req -new -x509 -nodes -out /etc/openldap/certs/cert.pem \-keyout /etc/openldap/certs/priv.pem -days 365
+10  cd /etc/openldap/certs
+11  chown ldap:ldap *
+12  chmod 600 priv.pem
+13  cp /usr/share/openldap-servers/DB_CONFIG.example /var/lib/ldap/DB_CONFIG
+14  slaptest
+15  chown ldap:ldap /var/lib/ldap/*
+16  systemctl enable slapd
+17  systemctl start slapd
+18  netstat -lt | grep ldap
+19  ss -ltap | grep ldap
+20  cd /etc/openldap/schema
+21  ldapadd -Y EXTERNAL -H ldapi:/// -D "cn=config" -f cosine.ldif
+22   ldapadd -Y EXTERNAL -H ldapi:/// -D "cn=config" -f nis.ldif
+23  touch  /etc/openldap/changes.ldif
+24  vim /etc/openldap/changes.ldif
+25  slappasswd
+26  vim /etc/openldap/changes.ldif
+27  ldapmodify -Y EXTERNAL -H ldapi:/// -f /etc/openldap/changes.ldif
+28  touch /etc/openldap/base.ldif
+29  vim /etc/openldap/base.ldif
+30  ldapadd -x -w redhat -D cn=Manager,dc=example,dc=com -f /etc/openldap/base.ldif
+31  ldapadd -x -w Redhat2018** -D cn=Manager,dc=example,dc=com -f /etc/openldap/base.ldif
+32  mkdir /home/guests
+33  useradd -d /home/guests/ldapuser01 ldapuser01
+34  passwd ldapuser01
+35  useradd -d /home/guests/ldapuser02 ldapuser02
+36  passwd ldapuser02
+37  cd /usr/share/migrationtools
+38  vim migrate_common.ph
+39  grep ":10[0-9][0-9]" /etc/passwd > passwd
+40  ./migrate_passwd.pl passwd users.ldif
+41  ldapadd -x -w redhat -D cn=Manager,dc=example,dc=com -f users.ldif
+42  ldapadd -x -w Redhat2018** -D cn=Manager,dc=example,dc=com -f users.ldif
+43  grep ":10[0-9][0-9]" /etc/group > group
+44  ./migrate_group.pl group groups.ldif
+45  ldapadd -x -w Redhat2018** -D cn=Manager,dc=example,dc=com -f groups.ldif
+46  ldapsearch -x cn=ldapuser01 -b dc=example,dc=com
+47  firewall-cmd --permanent --add-service=ldap
+48  firewalld --permanent --add-service=ldap
+49  yum install firewalld
+50  firewall-cmd --permanent --add-service=ldap
+51  systemctl start firewall-cmd
+52  systemctl start firewalld
+53  firewall-cmd --permanent --add-service=ldap
+54  firewall-cmd --reload
+55  local4.* /var/log/ldap.log
+56  vim /etc/rsyslog.conf
+57  systemctl restart rsyslog
+58  getent passwd ldapuser1
+59  getent passwd userldap
+60  getent passwd ldapuser01
+61  getent passwd ldapuser02
+62  ifconfig
+63  yum groupinstall -y file-server
+64  firewall-cmd --permanent --add-service=nfs
+65  firewall-cmd --permanent --add-service=mountd
+66  firewall-cmd --permanent --add-service=rpc-bind
+67  firewall-cmd --reload
+68  systemctl enable rpcbind nfs-server
+69   systemctl start rpcbind nfs-server
+70  mkdir -p /home/tools
+71  chmod 0777 /home/tools
+72  mkdir -p /home/guests
+73  chmod 0777 /home/guests
+74   yum install -y setroubleshoot-server
+75  semanage fcontext -a -t public_content_rw_t "/home/tools(/.*)?"
+76  semanage fcontext -a -t public_content_rw_t "/home/guests(/.*)?"
+77  restorecon -R /home/toolsD
+78  restorecon -R /home/tools
+79  restorecon -R /home/guests
+80  semanage boolean -l | egrep "nfs|SELinux"
+81  setsebool -P nfs_export_all_rw on
+82  setsebool -P nfs_export_all_ro on
+83  setsebool -P use_nfs_home_dirs on
+84  vim /etc/exports
+85  vim /etc/hosts
+86  exportfs -avr
+87  systemctl restart nfs-server
+88  exportfs -avr
+89  systemctl restart nfs-server
+90  showmount -e localhost
+91  ifconfig
+92  history

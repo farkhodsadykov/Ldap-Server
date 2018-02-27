@@ -1,0 +1,206 @@
+Presentation of LDAP
+LDAP stands for Lightweight Directory Access Protocol. It’s an open protocol for accessing and maintaining distributed directory information services over an IP network (source wikipedia).
+
+Here it is used to facilitate user account administration. Instead of storing user accounts locally on each server, the LDAP directory stores them globally and makes them available to a group of servers.
+
+This tutorial doesn’t explain how to set up the Automounter and the NFS services. It has been tested for RHEL 7.0, RHEL 7.1 and RHEL 7.2 (non-patched versions).
+
+During this tutorial, try to follow the instructions very precisely because LDAP syntax is sometimes cumbersome (case sensitive, space, etc) and prone to errors (dn/dc/cn).
+
+Let’s assume that we use the example.com domain and the instructor.example.com hostname (this hostname should be resolved either by the /etc/hosts file or by DNS).
+
+Installation Procedure
+Install the following packages:
+
+# yum install -y openldap openldap-clients openldap-servers migrationtools
+Generate a LDAP password from a secret key (here redhat):
+
+# slappasswd -s redhat -n > /etc/openldap/passwd
+Generate a X509 certificate valid for 365 days:
+
+# openssl req -new -x509 -nodes -out /etc/openldap/certs/cert.pem \
+-keyout /etc/openldap/certs/priv.pem -days 365
+Generating a 2048 bit RSA private key
+.....+++
+..............+++
+writing new private key to '/etc/openldap/certs/priv.pem'
+-----
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [XX]:
+State or Province Name (full name) []:
+Locality Name (eg, city) [Default City]:
+Organization Name (eg, company) [Default Company Ltd]:
+Organizational Unit Name (eg, section) []:
+Common Name (eg, your name or your server's hostname) []:instructor.example.com
+Email Address []:
+Secure the content of the /etc/openldap/certs directory:
+
+# cd /etc/openldap/certs
+# chown ldap:ldap *
+# chmod 600 priv.pem
+Prepare the LDAP database:
+
+# cp /usr/share/openldap-servers/DB_CONFIG.example /var/lib/ldap/DB_CONFIG
+Generate database files (don’t worry about error messages!):
+
+# slaptest
+53d61aab hdb_db_open: database "dc=my-domain,dc=com": db_open(/var/lib/ldap/id2entry.bdb) failed: No such file or directory (2).
+53d61aab backend_startup_one (type=hdb, suffix="dc=my-domain,dc=com"): bi_db_open failed! (2)
+slap_startup failed (test would succeed using the -u switch)
+Change LDAP database ownership:
+
+# chown ldap:ldap /var/lib/ldap/*
+Activate the slapd service at boot:
+
+# systemctl enable slapd
+Start the slapd service:
+
+# systemctl start slapd
+Check the LDAP activity:
+
+# netstat -lt | grep ldap
+tcp        0      0 0.0.0.0:ldap            0.0.0.0:*               LISTEN
+tcp6       0      0 [::]:ldap               [::]:*                  LISTEN
+Alternatively, you can use: # ss -ltap | grep ldap
+
+To start the configuration of the LDAP server, add the cosine & nis LDAP schemas:
+
+# cd /etc/openldap/schema
+# ldapadd -Y EXTERNAL -H ldapi:/// -D "cn=config" -f cosine.ldif
+SASL/EXTERNAL authentication started
+SASL username: gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth
+SASL SSF: 0
+adding new entry "cn=cosine,cn=schema,cn=config"
+# ldapadd -Y EXTERNAL -H ldapi:/// -D "cn=config" -f nis.ldif
+SASL/EXTERNAL authentication started
+SASL username: gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth
+SASL SSF: 0
+adding new entry "cn=nis,cn=schema,cn=config"
+Then, create the /etc/openldap/changes.ldif file and paste the following lines (replace passwd with the previously created password like {SSHA}l8A+0c+lRcymtWuIFbbc3EJ1PRZz9mGg ):
+
+dn: olcDatabase={2}hdb,cn=config
+changetype: modify
+replace: olcSuffix
+olcSuffix: dc=example,dc=com
+
+dn: olcDatabase={2}hdb,cn=config
+changetype: modify
+replace: olcRootDN
+olcRootDN: cn=Manager,dc=example,dc=com
+
+dn: olcDatabase={2}hdb,cn=config
+changetype: modify
+replace: olcRootPW
+olcRootPW: passwd # previously generated password (see above)
+
+dn: cn=config
+changetype: modify
+replace: olcTLSCertificateFile
+olcTLSCertificateFile: /etc/openldap/certs/cert.pem
+
+dn: cn=config
+changetype: modify
+replace: olcTLSCertificateKeyFile
+olcTLSCertificateKeyFile: /etc/openldap/certs/priv.pem
+
+dn: cn=config
+changetype: modify
+replace: olcLogLevel
+olcLogLevel: -1
+
+dn: olcDatabase={1}monitor,cn=config
+changetype: modify
+replace: olcAccess
+olcAccess: {0}to * by dn.base="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth" read by dn.base="cn=Manager,dc=example,dc=com" read by * none
+Send the new configuration to the slapd server:
+
+# ldapmodify -Y EXTERNAL -H ldapi:/// -f /etc/openldap/changes.ldif
+SASL/EXTERNAL authentication started
+SASL username: gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth
+SASL SSF: 0
+modifying entry "olcDatabase={2}hdb,cn=config"
+modifying entry "olcDatabase={2}hdb,cn=config"
+modifying entry "olcDatabase={2}hdb,cn=config"
+modifying entry "cn=config"
+modifying entry "cn=config"
+modifying entry "cn=config"
+modifying entry "olcDatabase={1}monitor,cn=config"
+Create the /etc/openldap/base.ldif file and paste the following lines:
+
+dn: dc=example,dc=com
+dc: example
+objectClass: top
+objectClass: domain
+
+dn: ou=People,dc=example,dc=com
+ou: People
+objectClass: top
+objectClass: organizationalUnit
+
+dn: ou=Group,dc=example,dc=com
+ou: Group
+objectClass: top
+objectClass: organizationalUnit
+Build the structure of the directory service:
+
+# ldapadd -x -w redhat -D cn=Manager,dc=example,dc=com -f /etc/openldap/base.ldif
+adding new entry "dc=example,dc=com"
+adding new entry "ou=People,dc=example,dc=com"
+adding new entry "ou=Group,dc=example,dc=com"
+Create two users for testing:
+
+# mkdir /home/guests
+# useradd -d /home/guests/ldapuser01 ldapuser01
+# passwd ldapuser01
+Changing password for user ldapuser01.
+New password: user01ldap
+Retype new password: user01ldap
+passwd: all authentication tokens updated successfully.
+# useradd -d /home/guests/ldapuser02 ldapuser02
+# passwd ldapuser02
+Changing password for user ldapuser02.
+New password: user02ldap
+Retype new password: user02ldap
+passwd: all authentication tokens updated successfully.
+User Account Migration
+Go to the directory for the migration of the user accounts:
+
+# cd /usr/share/migrationtools
+Edit the migrate_common.ph file and replace in the following lines:
+
+$DEFAULT_MAIL_DOMAIN = "example.com";
+$DEFAULT_BASE = "dc=example,dc=com";
+Create the current users in the directory service:
+
+# grep ":10[0-9][0-9]" /etc/passwd > passwd
+# ./migrate_passwd.pl passwd users.ldif
+# ldapadd -x -w redhat -D cn=Manager,dc=example,dc=com -f users.ldif
+adding new entry "uid=ldapuser01,ou=People,dc=example,dc=com"
+adding new entry "uid=ldapuser02,ou=People,dc=example,dc=com"
+# grep ":10[0-9][0-9]" /etc/group > group
+# ./migrate_group.pl group groups.ldif
+# ldapadd -x -w redhat -D cn=Manager,dc=example,dc=com -f groups.ldif
+adding new entry "cn=ldapuser01,ou=Group,dc=example,dc=com"
+adding new entry "cn=ldapuser02,ou=Group,dc=example,dc=com"
+Test the configuration with the user called ldapuser01:
+
+# ldapsearch -x cn=ldapuser01 -b dc=example,dc=com
+Firewall Configuration
+Add a new service to the firewall (ldap: port tcp 389):
+
+# firewall-cmd --permanent --add-service=ldap
+Reload the firewall configuration:
+
+# firewall-cmd --reload
+Edit the /etc/rsyslog.conf file and add the following line:
+
+local4.* /var/log/ldap.log
+Restart the rsyslog service:
+
+# systemctl restart rsyslog

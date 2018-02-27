@@ -1,0 +1,103 @@
+NFS Server Configuration
+Install the file-server package group:
+
+# yum groupinstall -y file-server
+Add a new service to the firewall:
+
+# firewall-cmd --permanent --add-service=nfs
+success
+Note: NFSv4 is the version used at the exam and doesn’t need any extra firewall configuration. However, beyond the exam objectives, if you plan to use NFSv3, you will also need to run these commands:
+
+# firewall-cmd --permanent --add-service=mountd
+# firewall-cmd --permanent --add-service=rpc-bind
+Reload the firewall configuration:
+
+# firewall-cmd --reload
+success
+Activate the NFS services at boot:
+
+# systemctl enable rpcbind nfs-server
+Note: The nfs-idmap/nfs-idmapd (changes happened with RHEL 7.1) and nfs-lock services are automatically started by the nfs-server service. nfs-idmap/nfs-idmapd is required by NFSv4 but doesn’t allow you any UID/GID mismatches between clients and server. It is only used when setting ACL by names or to display user/group names.
+All permission checks are still done with the UID/GID used by the server (see this thread about nfs-idmap for more details).
+
+Start the NFS services:
+
+# systemctl start rpcbind nfs-server
+Note1: By default, 8 NFS threads are used (RPCNFSDCOUNT=8 in the /etc/sysconfig/nfs file). This should be increased in a production environment to at least 32 (source: http://initrd.org/wiki/NFS_Setup).
+Note2: Optionally, to enable SELinux Labeled NFS Support, edit the /etc/sysconfig/nfs file and paste the following line (source): RPCNFSDARGS=”-V 4.2″
+
+Create directories to export and assign access rights:
+
+# mkdir -p /home/tools
+# chmod 0777 /home/tools
+# mkdir -p /home/guests
+# chmod 0777 /home/guests
+Assign the correct SELinux contexts to the new directories:
+
+# yum install -y setroubleshoot-server
+# semanage fcontext -a -t public_content_rw_t "/home/tools(/.*)?"
+# semanage fcontext -a -t public_content_rw_t "/home/guests(/.*)?"
+# restorecon -R /home/tools
+# restorecon -R /home/guests
+Note: The public_content_rw_t context is not the only available, you can also use the public_content_ro_t (only read-only) or nfs_t (more limited) contexts according to your needs.
+
+Check the SELinux booleans used for NFS:
+
+# semanage boolean -l | egrep "nfs|SELinux"
+SELinux boolean                State  Default Description
+xen_use_nfs                    (off  ,  off)  Allow xen to use nfs
+virt_use_nfs                   (off  ,  off)  Allow virt to use nfs
+mpd_use_nfs                    (off  ,  off)  Allow mpd to use nfs
+nfsd_anon_write                (off  ,  off)  Allow nfsd to anon write
+ksmtuned_use_nfs               (off  ,  off)  Allow ksmtuned to use nfs
+git_system_use_nfs             (off  ,  off)  Allow git to system use nfs
+virt_sandbox_use_nfs           (off  ,  off)  Allow virt to sandbox use nfs
+logrotate_use_nfs              (off  ,  off)  Allow logrotate to use nfs
+git_cgi_use_nfs                (off  ,  off)  Allow git to cgi use nfs
+cobbler_use_nfs                (off  ,  off)  Allow cobbler to use nfs
+httpd_use_nfs                  (off  ,  off)  Allow httpd to use nfs
+sge_use_nfs                    (off  ,  off)  Allow sge to use nfs
+ftpd_use_nfs                   (off  ,  off)  Allow ftpd to use nfs
+sanlock_use_nfs                (off  ,  off)  Allow sanlock to use nfs
+samba_share_nfs                (off  ,  off)  Allow samba to share nfs
+openshift_use_nfs              (off  ,  off)  Allow openshift to use nfs
+polipo_use_nfs                 (off  ,  off)  Allow polipo to use nfs
+use_nfs_home_dirs              (off  ,  off)  Allow use to nfs home dirs
+nfs_export_all_rw              (on   ,   on)  Allow nfs to export all rw
+nfs_export_all_ro              (on   ,   on)  Allow nfs to export all ro
+Note1: The State column respectively shows the current boolean configuration and the Default column the permanent boolean configuration.
+Note2: Here we are interested in the nfs_export_all_rw, nfs_export_all_ro and potentially use_nfs_home_dirs booleans.
+Note3: The nfs_export_all_ro boolean allows files to be shared through NFS in read-only mode but doesn’t restrict them from being used in read-write mode. It’s the role of the nfs_export_all_rw boolean to allow read-write mode.
+
+If necessary, assign the correct setting to the SELinux booleans:
+
+# setsebool -P nfs_export_all_rw on
+# setsebool -P nfs_export_all_ro on
+# setsebool -P use_nfs_home_dirs on
+Edit the /etc/exports file and add the following lines with the name (or IP address) of the client(s):
+
+/home/tools nfsclient.example.com(rw,no_root_squash)
+/home/guests nfsclient.example.com(rw,no_root_squash)
+Note: Please, don’t put any space before the opening parenthesis, this would completely change the meaning of the line!
+
+Export the directories:
+
+# exportfs -avr
+exporting nfsclient.example.com:/home/guests
+exporting nfsclient.example.com:/home/tools
+# systemctl restart nfs-server
+Note: This last command shouldn’t be necessary in the future. But, for the time being, it avoids rebooting.
+
+Check your configuration:
+
+# showmount -e localhost
+Export list for localhost:
+/home/guests nfsclient.example.com
+/home/tools  nfsclient.example.com
+Note: You can test what is exported by the NFS server from a remote client with the command showmount -e nfsserver.example.com but you first need to stop Firewalld on the NFS server (or open the 111 udp and 20048 tcp ports on the NFS server).
+
+NFS Client Configuration
+On the client side, the commands are:
+
+# yum install -y nfs-utils
+# mount -t nfs nfsserver.example.com:/home/tools /mnt

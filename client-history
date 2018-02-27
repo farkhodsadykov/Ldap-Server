@@ -1,0 +1,48 @@
+1  ifconfig
+2   yum install -y openldap-clients nss-pam-ldapd
+3  authconfig --enableforcelegacy --update
+4  vim start
+5  yum install vim -y
+6  vim start
+7  authconfig --enableldap --enableldapauth --ldapserver="instructor.example.com" \--ldapbasedn="dc=example,dc=com" --update
+8  vim /etc/host
+9  vim /etc/hosts
+10  ping instructor.example.com
+11  vim /etc/hosts
+12  vim start
+13  scp root@instructor.example.com:/etc/openldap/certs/cert.pem \ /etc/openldap/cacerts/cert.pem
+14  scp root@instructor.example.com:/etc/openldap/certs/cert.pem \/etc/openldap/cacerts/cert.pem
+15  restorecon /etc/openldap/cacerts/cert.pem
+16  authconfig --enableldaptls --update
+17  getent passwd ldapuser02
+18  yum install -y autofs nfs-utils
+19  vim /etc/auto.guests
+20  vim /etc/auto.master
+21  systemctl enable autofs && systemctl start autofs
+22  su - ldapuser02
+23  getent passwd ldapuser02
+24  lsblk
+25  clear
+26  df -h
+27  su - ldapuser02
+28  cat /etc/auto.guests
+29  Install package sssd
+30  um groupinstall -y file-server
+31  getent passwd ldapuser02
+32  getent passwd ldapuser01
+33  getent passwd ldapuser02
+34  yum groupinstall -y file-server
+35  ifconfig
+36  yum install -y nfs-utils
+37  mount -t nfs nfsserver.example.com:/home/tools /mnt
+38  clear
+39  showmount -e
+40  showmount -e 159.89.87.216
+41  vim /etc/hosts
+42   mount -t nfs nfsserver.example.com:/home/tools /mnt
+43  lsblk
+44  clear
+45  df -h
+46  su - ldapuser01
+47  df -h
+48  history

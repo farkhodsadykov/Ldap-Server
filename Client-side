@@ -1,0 +1,52 @@
+LDAP Client Configuration
+As the authconfig-tui is deprecated, to configure the LDAP client side, there are two available options: nslcd and sssd.
+In this tutorial, the nslcd option will be used, see the authconfig tutorial for the sssd option.
+
+Install the following packages:
+
+# yum install -y openldap-clients nss-pam-ldapd
+Note: Just to mention that Sander van Vugt advises to install the Directory Client group package: # yum group install “Directory Client”
+
+Then, type:
+
+# authconfig --enableforcelegacy --update
+# authconfig --enableldap --enableldapauth --ldapserver="instructor.example.com" \
+--ldapbasedn="dc=example,dc=com" --update
+Note1: According to your requirements, you can need to specify the –enablemkhomedir option after the installation of the oddjob-mkhomedir package. The option creates a local user home directory at the first connection if none exists.
+Note2: Type # authconfig –help | grep ldap to remember the necessary options.
+
+Put the LDAP server certificate into the /etc/openldap/cacerts directory:
+
+# scp root@instructor.example.com:/etc/openldap/certs/cert.pem \
+/etc/openldap/cacerts/cert.pem
+Apply the correct SELinux context to the certificate:
+
+# restorecon /etc/openldap/cacerts/cert.pem
+Activate the TLS option:
+
+# authconfig --enableldaptls --update
+Test the configuration:
+
+# getent passwd ldapuser02
+ldapuser02:*:1001:1001:ldapuser02:/home/guests/ldapuser02:/bin/bash
+NFS Server Configuration
+To get the home directory mounted, you need to configure a NFS server.
+The NFS server is called instructor.example.com in the procedure.
+Note: It’s not required to have the LDAP server and the NFS server on the same machine, it’s only easier.
+
+Automounter Client Configuration
+Install the following packages:
+
+# yum install -y autofs nfs-utils
+Create a new indirect /etc/auto.guests map and paste the following line:
+
+* -rw,nfs4 instructor.example.com:/home/guests/&
+Add the following line at the beginning of the /etc/auto.master file:
+
+/home/guests /etc/auto.guests
+Start the Automounter daemon and enable it at boot:
+
+# systemctl enable autofs && systemctl start autofs
+Test the configuration:
+
+# su - ldapuser02
