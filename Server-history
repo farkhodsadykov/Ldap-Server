@@ -37,10 +37,10 @@
 39  grep ":10[0-9][0-9]" /etc/passwd > passwd
 40  ./migrate_passwd.pl passwd users.ldif
 41  ldapadd -x -w redhat -D cn=Manager,dc=example,dc=com -f users.ldif
-42  ldapadd -x -w Redhat2018** -D cn=Manager,dc=example,dc=com -f users.ldif
+42  ldapadd -x -w ******* -D cn=Manager,dc=example,dc=com -f users.ldif
 43  grep ":10[0-9][0-9]" /etc/group > group
 44  ./migrate_group.pl group groups.ldif
-45  ldapadd -x -w Redhat2018** -D cn=Manager,dc=example,dc=com -f groups.ldif
+45  ldapadd -x -w ******* -D cn=Manager,dc=example,dc=com -f groups.ldif
 46  ldapsearch -x cn=ldapuser01 -b dc=example,dc=com
 47  firewall-cmd --permanent --add-service=ldap
 48  firewalld --permanent --add-service=ldap
