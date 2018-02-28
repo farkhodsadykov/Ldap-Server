@@ -1,4 +1,4 @@
-2  slappasswd -s Redhat2018** -n > /etc/openldap/passwd
+2  slappasswd -s ******* -n > /etc/openldap/passwd
 3  cat > start
 4  cat start
 5  vim start
@@ -26,7 +26,7 @@
 28  touch /etc/openldap/base.ldif
 29  vim /etc/openldap/base.ldif
 30  ldapadd -x -w redhat -D cn=Manager,dc=example,dc=com -f /etc/openldap/base.ldif
-31  ldapadd -x -w Redhat2018** -D cn=Manager,dc=example,dc=com -f /etc/openldap/base.ldif
+31  ldapadd -x -w ****** -D cn=Manager,dc=example,dc=com -f /etc/openldap/base.ldif
 32  mkdir /home/guests
 33  useradd -d /home/guests/ldapuser01 ldapuser01
 34  passwd ldapuser01
