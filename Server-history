@@ -4,7 +4,6 @@
 5  vim start
 6  yum install vim -y
 7  vim start
-8   openssl req -new -x509 -nodes -out /etc/openldap/certs/cert.pem \ -keyout /etc/openldap/certs/priv.pem -days 365
 9   openssl req -new -x509 -nodes -out /etc/openldap/certs/cert.pem \-keyout /etc/openldap/certs/priv.pem -days 365
 10  cd /etc/openldap/certs
 11  chown ldap:ldap *
